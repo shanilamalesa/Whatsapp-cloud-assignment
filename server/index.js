@@ -1,6 +1,3 @@
-// const whatsappRoutes = require("./routes/whatsapp");
-// app.use("/whatsapp", whatsappRoutes);
-
 require("dotenv").config();
 const express = require("express");
 const app = express();
@@ -21,6 +18,7 @@ function verifySignature(req, res, buf) {
 }
 
 const whatsappRoutes = require("./routes/whatsapp");
+const leadsRoutes = require("./routes/leads");
 
 app.use("/whatsapp/webhook", (req, res, next) => {
   if (req.method === "POST") {
@@ -30,7 +28,9 @@ app.use("/whatsapp/webhook", (req, res, next) => {
   }
 });
 
+app.use(express.json());
 app.use("/whatsapp", whatsappRoutes);
+app.use("/api/leads", leadsRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
