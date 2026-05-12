@@ -1,0 +1,15 @@
+{
+  "name": "whatsapp-crm",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w @crm/backend",
+    "dev:frontend": "npm run dev -w @crm/frontend",
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}
