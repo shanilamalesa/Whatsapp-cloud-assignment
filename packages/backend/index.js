@@ -26,6 +26,9 @@ app.use("/whatsapp/webhook", express.json({ verify: verifySignature }));
 
 app.use("/whatsapp", whatsappRoutes);
 
+const leadsRoutes = require("./routes/leads");
+app.use("/api/leads", leadsRoutes);
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () =>{
   console.log(`Server running on port ${PORT}`);

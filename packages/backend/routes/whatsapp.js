@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
+const { v4: uuidv4 } = require("uuid");
+const db = require("../db/init");
 
 router.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
@@ -17,12 +19,29 @@ router.get("/webhook", (req, res) => {
 router.post("/webhook", express.json(), async (req, res) => {
   res.sendStatus(200);
   const parsed = parseIncoming(req.body);
-    if (!parsed) return;
-      console.log(parsed);
-      const reply = handleMessage({ from: parsed.from, text: parsed.text });
-      console.log("Reply:", reply);
-      await sendMessage(parsed.from, reply);
-  
+  if (!parsed) return;
+
+  // Step 1 - find or create lead
+  const lead = findOrCreateLead(parsed.from);
+
+  // Step 2 - load conversation state from DB
+  const session = loadConversation(lead.id);
+
+  // Step 3 - advance state machine
+  const reply = handleMessage({ from: parsed.from, text: parsed.text, session });
+
+  // Step 4 - save conversation back to DB
+  const updatedSession = sessions.get(parsed.from);
+  if (updatedSession) {
+    saveConversation(lead.id, updatedSession.state, updatedSession.data);
+  }
+
+  // Step 5 - save messages
+  saveMessage(lead.id, parsed.text, "inbound");
+  saveMessage(lead.id, reply, "outbound");
+
+  // Step 6 - send reply
+  await sendMessage(parsed.from, reply);
 });
 
 function parseIncoming(body) {
@@ -50,9 +69,8 @@ const STATES = {
 
 const sessions = new Map(); // phone -> { state, data }
 
-function handleMessage({ from, text }) {
-  let session = sessions.get(from) || { state: STATES.GREETING, data: {} };
-
+function handleMessage({ from, text, session: sessionFromDB  }) {
+  let session = sessions.get(from) || sessionFromDB || { state: STATES.GREETING, data: {} };
   if (session.state === STATES.GREETING) {
     session.state = STATES.AWAITING_NAME;
     sessions.set(from, session);
@@ -100,4 +118,36 @@ async function sendMessage(to, text) {
   );
 }
 
+function findOrCreateLead(phone) {
+  let lead = db.prepare("SELECT * FROM leads WHERE wa_phone = ?").get(phone);
+  if (!lead) {
+    db.prepare("INSERT INTO leads (id, wa_phone) VALUES (?, ?)").run(uuidv4(), phone);
+    lead = db.prepare("SELECT * FROM leads WHERE wa_phone = ?").get(phone);
+  }
+  return lead;
+}
+
+function loadConversation(leadId) {
+  const convo = db.prepare("SELECT * FROM conversations WHERE lead_id = ?").get(leadId);
+  if (!convo) {
+    return { state: STATES.GREETING, data: {} };
+  }
+  return {
+    state: convo.state,
+    data: JSON.parse(convo.data || "{}"),
+  };
+}
+
+function saveConversation(leadId, state, data) {
+  const existing = db.prepare("SELECT * FROM conversations WHERE lead_id = ?").get(leadId);
+    if (!existing) {
+    db.prepare("INSERT INTO conversations (id, lead_id, state, data, updated_at) VALUES (?, ?, ?, ?, datetime('now'))").run(uuidv4(), leadId, state, JSON.stringify(data));
+  } else {
+    db.prepare("UPDATE conversations SET state = ?, data = ?, updated_at = datetime('now') WHERE lead_id = ?").run(state, JSON.stringify(data), leadId);
+  }
+}
+
+function saveMessage(leadId, body, direction) {
+  db.prepare("INSERT INTO messages (id, lead_id, direction, body, created_at) VALUES (?, ?, ?, ?, datetime('now'))").run(uuidv4(), leadId, direction, body);
+}
 module.exports = router;
