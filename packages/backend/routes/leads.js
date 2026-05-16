@@ -40,6 +40,35 @@ router.get("/stats/counts", (req, res) => {
   res.json({ data: stats });
 });
 
+// GET /api/leads/export - download CSV
+router.get("/export", (req, res) =>{
+  const q = req.query.q || "";
+  const status = req.query.status || "";
+
+  let query = "SELECT * FROM leads WHERE 1=1";
+  const params = [];
+
+  if (q){
+    query += "AND (name LIKE ? OR email LIKE ?)";
+    params.push(`%${q}%`, `%${q}%`);
+  }
+  if (status) {
+    query += "AND status = ?";
+    params.push(status);
+  }
+
+  const leads = db.prepare(query).all(...params);
+
+  const csv = [
+    "Name, Phone, Email, Inquiry, Status, Created",
+    ...leads.map((l) => `${l.name},${l.wa_phone},${l.email},${l.inquiry_type},${l.status},${l.created_at}`)
+  ].join("\n");
+  
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader("Content-Disposition", "attachment; filename= leads.csv");
+  res.send(csv);
+});
+
 // GET /api/leads/:id - single lead
 router.get("/:id", (req, res) => {
   const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(req.params.id);
@@ -59,5 +88,7 @@ router.patch("/:id", (req, res) => {
   const updated = db.prepare("SELECT * FROM leads WHERE id = ?").get(req.params.id);
   res.json({ data: updated });
 });
+
+
 
 module.exports = router;
