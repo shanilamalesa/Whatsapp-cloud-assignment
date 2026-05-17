@@ -21,7 +21,11 @@ export default function LeadsTable( {leads, onSelect}){
                         <td>{lead.wa_phone}</td>
                         <td>{lead.email}</td>
                         <td>{lead.inquiry_type}</td>
-                        <td>{lead.status}</td>
+                        <td>
+                        <span className={`status-badge status-${lead.status}`}>
+                            {lead.status}
+                        </span>
+                        </td>
                         <td>{lead.created_at}</td>
                     </tr>
                     )

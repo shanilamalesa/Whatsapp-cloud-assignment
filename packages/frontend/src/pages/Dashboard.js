@@ -35,40 +35,45 @@ useEffect(() => {
   return () => clearInterval(timer); // cleanup on unmount
 }, [q, status, offset]);
 
-return(
-    <div>
-        <h1>CRM Dashboard</h1>
-
-        <input
-            type="text"
-            placeholder="Search by name or email"
-            value={q}
-            onChange={(e) => { setQ(e.target.value); setOffset(0); }}
-        />
-
-        <select value={status} onChange={(e) => {setStatus(e.target.value); setOffset(0); }}>
-            <option value="">All statuses</option>
-            <option value="new">New</option>
-            <option value="contacted">Contacted</option>
-            <option value="qualified">Qualified</option>
-            <option value="closed">Closed</option>
-        </select>
-
-        {loading && <p>Loading...</p>}
-        {error && <p>{error}</p>}
-        {!loading && !error && leads.length === 0 && (
-            <p>No Leads yet. Send a WhatsApp to your test number to get started.</p>
-        )}
-
-        <LeadsTable leads={leads} onSelect={setSelectedLead} />
-
-        <div>
-            <button onClick={() => exportLeads({ q, status })}>Export CSV</button>
-            <button disabled={offset === 0} onClick={() => setOffset(offset - 10)}>Previous</button>
-            <button disabled={offset + 10 >= total} onClick={() => setOffset(offset + 10)}>Next</button>
-        </div>
-
-        {selectedLead && <LeadDetail lead={selectedLead} onClose={() => setSelectedLead(null)} />}
+return (
+  <div className="dashboard">
+    <div className="dashboard-header">
+      <h1>CRM Dashboard</h1>
     </div>
+
+    <div className="toolbar">
+      <input
+        type="text"
+        placeholder="Search by name or email"
+        value={q}
+        onChange={(e) => { setQ(e.target.value); setOffset(0); }}
+      />
+      <select value={status} onChange={(e) => { setStatus(e.target.value); setOffset(0); }}>
+        <option value="">All statuses</option>
+        <option value="new">New</option>
+        <option value="contacted">Contacted</option>
+        <option value="qualified">Qualified</option>
+        <option value="closed">Closed</option>
+      </select>
+      <button className="btn-primary" onClick={() => exportLeads({ q, status })}>Export CSV</button>
+    </div>
+
+    {loading && <p className="state-msg">Loading...</p>}
+    {error && <p className="state-msg error">{error}</p>}
+    {!loading && !error && leads.length === 0 && (
+      <p className="state-msg">No leads yet. Send a WhatsApp to your test number to get started.</p>
+    )}
+
+    <div className="table-wrapper">
+      <LeadsTable leads={leads} onSelect={setSelectedLead} />
+    </div>
+
+    <div className="pagination">
+      <button className="btn-secondary" disabled={offset === 0} onClick={() => setOffset(offset - 10)}>Previous</button>
+      <button className="btn-secondary" disabled={offset + 10 >= total} onClick={() => setOffset(offset + 10)}>Next</button>
+    </div>
+
+    {selectedLead && <LeadDetail lead={selectedLead} onClose={() => setSelectedLead(null)} />}
+  </div>
 );
 }

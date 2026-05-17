@@ -49,11 +49,11 @@ router.get("/export", (req, res) =>{
   const params = [];
 
   if (q){
-    query += "AND (name LIKE ? OR email LIKE ?)";
+    query += " AND (name LIKE ? OR email LIKE ?)";
     params.push(`%${q}%`, `%${q}%`);
   }
   if (status) {
-    query += "AND status = ?";
+    query += " AND status = ?";
     params.push(status);
   }
 
